@@ -2,9 +2,101 @@ import { Button, TextField, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import Head from "next/head";
 import React from "react";
+import * as useDb from "@/utils/database";
+import { useRouter } from "next/router";
+import {
+ createUserWithEmailAndPassword,
+ signInWithPopup,
+ GoogleAuthProvider,
+} from "firebase/auth";
+import { auth } from "@/utils/firebase";
 
+
+const provider = new GoogleAuthProvider();
 
 export default function Signup() {
+
+ const router = useRouter();
+ const [email, setEmail] = React.useState("");
+ const [password, setPassword] = React.useState("");
+ const [name, setName] = React.useState("");
+ const [usersList, setUsersList] = React.useState({});
+ 
+ React.useEffect(() => {
+  useDb.getData("users", (snapshot) => {
+   const data = snapshot.val();
+
+   if (data) {
+    setUsersList(data);
+   }
+  });
+ }, []);
+
+ const registerManual = () => {
+  createUserWithEmailAndPassword(auth, email, password)
+  
+  .then((userCredential) => {
+ 
+   const user = userCredential.user;
+   console.log(user)
+
+
+    useDb.sendData("users", {
+     ...usersList,
+     [user.uid]: {
+      emailVerified: user.emailVerified,
+      timestamp: new Date().getTime(),
+      user_id: user.uid,
+      photo: "/notfound.jpg",
+      name: name,
+      is_online: false,
+     },
+    });
+
+    router.push('/login');
+
+
+   })
+   .catch((error) => {
+    console.log(error)
+    const errorCode = error.code;
+    const errorMessage = error.message;
+    // ..
+   });
+ };
+
+ const registerGoogle = () => {
+  signInWithPopup(auth, provider)
+
+   .then((result) => {
+    const user = result.user;
+
+    useDb.sendData("users", {
+     ...usersList,
+     [user.uid]: {
+      emailVerified: user.emailVerified,
+      timestamp: new Date().getTime(),
+      user_id: user.uid,
+      photo: user.photoURL,
+      name: user.displayName,
+      is_online: false,
+     },
+    });
+
+    router.push("/login");
+   })
+   .catch((error) => {
+    // Handle Errors here.
+    const errorCode = error.code;
+    const errorMessage = error.message;
+    // The email of the user's account used.
+    const email = error.customData.email;
+    // The AuthCredential type that was used.
+    const credential = GoogleAuthProvider.credentialFromError(error);
+    // ...
+   });
+ };
+
 
  return (
   <>
@@ -28,6 +120,7 @@ export default function Signup() {
        type={"text"}
        placeholder="Name"
        required
+       onChange={(e) => setName(e.target.value)}
       />
 
       <TextField
@@ -36,6 +129,7 @@ export default function Signup() {
        type={"email"}
        placeholder="Email"
        required
+       onChange={(e) => setEmail(e.target.value)}
       />
 
       <TextField
@@ -44,16 +138,31 @@ export default function Signup() {
        type={"password"}
        placeholder="Password"
        required
+       onChange={(e) => setPassword(e.target.value)}
+       onKeyDown={(e) => {
+        if (e.key === "Enter") {
+         registerManual()
+        }
+       }}
       />
 
-      <Button type="submit" sx={{ marginTop: 2, borderRadius: 3 }} color="primary" variant="contained" fullWidth>SignUp</Button>
+      <Button type="submit" sx={{
+       marginTop: 2, borderRadius: 3, ":hover": {
+        backgroundColor: "#7E98DF"
+       }
+      }} color="primary" variant="contained" fullWidth onClick={registerManual}>SignUp</Button>
 
       <Typography marginY={3} variant="p" sx={{ color: "#7E98DF" }} >Signup with</Typography>
 
       <Button
        variant="outlined"
        fullWidth
-       sx={{ gap: 2, color: "#7E98DF", borderRadius: 3 }}
+       sx={{
+        gap: 2, color: "#7E98DF", borderRadius: 3, ":hover": {
+         backgroundColor: "#7E98DF", color: "white"
+        }
+       }}
+       onClick={registerGoogle}
       >
        <img src="/images/google.svg" />
        Google
