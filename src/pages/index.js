@@ -28,10 +28,16 @@ import { Box, Container } from "@mui/system";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 import * as useDb from "@/utils/database";
+import { Route } from "@mui/icons-material";
+import { useRouter } from "next/router";
+import { auth } from "@/utils/firebase";
+
 
 const ID = new Date().getTime();
 
 export default function Home() {
+ const router = useRouter();
+
  const [uuid, setUuid] = React.useState("");
  const [isClicked, setIsClicked] = React.useState(false);
  const [selectedChat, setSelectedChat] = React.useState(null);
@@ -105,6 +111,15 @@ export default function Home() {
  };
  // console.log(usersList)
 
+ const SignOut = () => {
+  signOut(auth).then(() => {
+   localStorage.clear();
+   router.replace('/login')
+   // Sign-out successful.
+  }).catch((error) => {
+   // An error happened.
+  });
+ }
 
  return (
   <>
@@ -120,9 +135,11 @@ export default function Home() {
      >
       <Container sx={{ pt: "20px" }}>
        {/* Contact List */}
-       <Typography variant="h1" className="text-logo">
+       <Typography variant="h1" className="text-logo" sx={{ fontSize: "2rem" }}>
         Telegram
        </Typography>
+       <Button onClick={SignOut}>LogOut</Button>
+
 
        {/* Search Column */}
        <TextField
